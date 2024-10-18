@@ -38,11 +38,12 @@ _MODELS = {
     "ViT-L/14": "https://openaipublic.azureedge.net/clip/models/b8cca3fd41ae0c99ba7e8951adf17d267cdb84cd88be6f7c2e0eca1737a03836/ViT-L-14.pt",
 }
 
-
+#从指定的 URL 下载文件，并确保下载的文件完整且未损坏。通过使用 SHA256 校验和进行验证，确保文件的安全性和可靠性。
 def _download(url: str, root: str):
     os.makedirs(root, exist_ok=True)
+    #从 URL 中提取文件名，os.path.basename 函数返回 URL 的最后一个部分，即文件名
     filename = os.path.basename(url)
-
+    #校验和
     expected_sha256 = url.split("/")[-2]
     download_target = os.path.join(root, filename)
 
@@ -52,9 +53,9 @@ def _download(url: str, root: str):
     if os.path.isfile(download_target):
         if hashlib.sha256(open(download_target, "rb").read()).hexdigest() == expected_sha256:
             return download_target
-        else:
+        else:#如果文件存在但校验和不匹配，则发出警告，提示需要重新下载文件。
             warnings.warn(f"{download_target} exists, but the SHA256 checksum does not match; re-downloading the file")
-
+    #开指定的 URL，并将下载的内容写入到 download_target
     with urllib.request.urlopen(url) as source, open(download_target, "wb") as output:
         with tqdm(total=int(source.info().get("Content-Length")), ncols=80, unit='iB', unit_scale=True, unit_divisor=1024) as loop:
             while True:
@@ -70,11 +71,11 @@ def _download(url: str, root: str):
 
     return download_target
 
-
+#将输入的图像转换为 RGB 格式。
 def _convert_image_to_rgb(image):
     return image.convert("RGB")
 
-
+#创建一个图像预处理的操作序列
 def _transform(n_px):
     return Compose([
         Resize(n_px, interpolation=BICUBIC),
@@ -84,12 +85,12 @@ def _transform(n_px):
         Normalize((0.48145466, 0.4578275, 0.40821073), (0.26862954, 0.26130258, 0.27577711)),
     ])
 
-
+#返回可用的 CLIP 模型名称，方便用户查看和选择模型。
 def available_models() -> List[str]:
     """Returns the names of available CLIP models"""
     return list(_MODELS.keys())
 
-
+#加载 CLIP 模型
 def load(name: str, device: Union[str, torch.device] = "cuda" if torch.cuda.is_available() else "cpu", jit: bool = False, download_root: str = None):
     """Load a CLIP model
 
